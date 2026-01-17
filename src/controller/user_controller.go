@@ -2,16 +2,24 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/user/go-learning/src/service"
+	"github.com/fayzzzm/go-bro/src/models"
 	"net/http"
 	"strconv"
 )
 
-type UserController struct {
-	svc *service.UserService
+// UserServicer defines the expected behavior of the business logic.
+// In Hexagonal Architecture, this is an "Input Port".
+type UserServicer interface {
+	RegisterUser(name, email string) (*models.User, error)
+	GetUser(id int) (*models.User, error)
+	ListUsers() ([]*models.User, error)
 }
 
-func NewUserController(svc *service.UserService) *UserController {
+type UserController struct {
+	svc UserServicer
+}
+
+func NewUserController(svc UserServicer) *UserController {
 	return &UserController{svc: svc}
 }
 

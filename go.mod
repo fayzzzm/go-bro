@@ -1,10 +1,11 @@
-module github.com/user/go-learning
+module github.com/fayzzzm/go-bro
 
 go 1.22
 
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jackc/pgx/v5 v5.5.5
+	go.uber.org/fx v1.20.0
 )
 
 require (

@@ -2,16 +2,23 @@ package service
 
 import (
 	"errors"
-	"github.com/user/go-learning/src/models"
-	"github.com/user/go-learning/src/repository"
+	"github.com/fayzzzm/go-bro/src/models"
 	"strings"
 )
 
-type UserService struct {
-	repo repository.UserRepository
+// UserRepository defines the contract for user data access.
+// In Hexagonal Architecture, this is an "Output Port".
+type UserRepository interface {
+	Create(user *models.User) error
+	GetByID(id int) (*models.User, error)
+	GetAll() ([]*models.User, error)
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
+type UserService struct {
+	repo UserRepository
+}
+
+func NewUserService(repo UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 

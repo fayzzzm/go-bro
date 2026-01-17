@@ -3,52 +3,99 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/user/go-learning/src/controller"
-	"github.com/user/go-learning/src/repository"
-	"github.com/user/go-learning/src/routes"
-	"github.com/user/go-learning/src/service"
+	"github.com/fayzzzm/go-bro/src/controller"
+	"github.com/fayzzzm/go-bro/src/repository/postgres"
+	"github.com/fayzzzm/go-bro/src/routes"
+	"github.com/fayzzzm/go-bro/src/service"
+	"go.uber.org/fx"
 )
 
 func main() {
-	// 1. Setup Database Connection Pool
+	fx.New(
+		fx.Provide(
+			// 1. Database Pool
+			NewDatabasePool,
+			// 2. Repositories (Adapters) - Isolated in their own sub-package
+			fx.Annotate(
+				postgres.NewUserRepo,
+				fx.As(new(service.UserRepository)),
+			),
+			// 3. Services (Core)
+			fx.Annotate(
+				service.NewUserService,
+				fx.As(new(controller.UserServicer)),
+			),
+			// 4. Controllers (Adapters)
+			controller.NewUserController,
+			// 5. Framework (Gin)
+			NewGinEngine,
+		),
+		fx.Invoke(
+			// 6. Setup Routes and start server logic
+			RegisterRoutes,
+		),
+	).Run()
+}
+
+// NewDatabasePool creates a connection pool and handles its shutdown via fx.Lifecycle
+func NewDatabasePool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 	ctx := context.Background()
 	connStr := "postgres://gouser:gopassword@postgres:5432/godb?sslmode=disable"
 	
 	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
+		return nil, err
 	}
-	defer pool.Close()
 
-	// 2. Initialize Clean Architecture Layers
-	
-	// Data Layer (Repository)
-	userRepo := repository.NewPostgresUserRepo(pool)
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			log.Println("Closing database pool...")
+			pool.Close()
+			return nil
+		},
+	})
 
-	// Business Layer (Service)
-	userSvc := service.NewUserService(userRepo)
+	return pool, nil
+}
 
-	// Adapter Layer (Controller)
-	userCtrl := controller.NewUserController(userSvc)
-
-	// 3. Framework Layer (Gin)
+// NewGinEngine initializes the Gin framework
+func NewGinEngine() *gin.Engine {
 	r := gin.Default()
+	return r
+}
 
-	// 4. Setup Routes
+// RegisterRoutes ties everything together and starts the HTTP server
+func RegisterRoutes(lc fx.Lifecycle, r *gin.Engine, userCtrl *controller.UserController) {
 	routes.SetupRoutes(r, userCtrl)
 
-	// 5. Start Server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("🚀 Clean Architecture API starting on :%s...", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			log.Printf("🚀 Clean Architecture API starting on :%s (via fx)...", port)
+			go func() {
+				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					log.Fatalf("Failed to start server: %v", err)
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			log.Println("Shutting down HTTP server...")
+			return server.Shutdown(ctx)
+		},
+	})
 }
