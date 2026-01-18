@@ -1,19 +1,35 @@
 version: '3.8'
 
 services:
-  go:
+  # Go Backend Server
+  server:
     build: .
-    container_name: go-learning
+    container_name: go-server
     volumes:
       - .:/app
       - go-modules:/go/pkg/mod
-    working_dir: /app
+    working_dir: /app/src/server
     ports:
       - "8080:8080"
     stdin_open: true
     tty: true
+    depends_on:
+      - postgres
 
-  # PostgreSQL for Day 4 database exercises
+  # React Frontend Client
+  client:
+    image: node:20-alpine
+    container_name: react-client
+    volumes:
+      - ./src/client:/app
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    stdin_open: true
+    tty: true
+
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: go-postgres

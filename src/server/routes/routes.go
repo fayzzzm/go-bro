@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/fayzzzm/go-bro/src/controller"
+	"github.com/fayzzzm/go-bro/controller"
 )
 
 func SetupRoutes(r *gin.Engine, userCtrl *controller.UserController) {

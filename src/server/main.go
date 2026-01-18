@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/fayzzzm/go-bro/controller"
+	"github.com/fayzzzm/go-bro/repository/postgres"
+	"github.com/fayzzzm/go-bro/routes"
+	"github.com/fayzzzm/go-bro/service"
+	usecase "github.com/fayzzzm/go-bro/usecase/user"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/fayzzzm/go-bro/src/controller"
-	"github.com/fayzzzm/go-bro/src/repository/postgres"
-	"github.com/fayzzzm/go-bro/src/routes"
-	"github.com/fayzzzm/go-bro/src/service"
 	"go.uber.org/fx"
 )
 
@@ -20,23 +21,33 @@ func main() {
 		fx.Provide(
 			// 1. Database Pool
 			NewDatabasePool,
-			// 2. Repositories (Adapters) - Isolated in their own sub-package
+
+			// 2. Repositories (Adapters) - Calls SQL functions
 			fx.Annotate(
 				postgres.NewUserRepo,
 				fx.As(new(service.UserRepository)),
 			),
-			// 3. Services (Core)
+
+			// 3. Services (Core) - Thin wrapper
 			fx.Annotate(
 				service.NewUserService,
-				fx.As(new(controller.UserServicer)),
+				fx.As(new(service.UserServicer)),
 			),
-			// 4. Controllers (Adapters)
+
+			// 4. Use Cases - Application logic & DTO transformation
+			fx.Annotate(
+				usecase.NewUserUseCase,
+				fx.As(new(usecase.UserUseCase)),
+			),
+
+			// 5. Controllers (Adapters)
 			controller.NewUserController,
-			// 5. Framework (Gin)
+
+			// 6. Framework (Gin)
 			NewGinEngine,
 		),
 		fx.Invoke(
-			// 6. Setup Routes and start server logic
+			// 7. Setup Routes and start server
 			RegisterRoutes,
 		),
 	).Run()
@@ -46,7 +57,7 @@ func main() {
 func NewDatabasePool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 	ctx := context.Background()
 	connStr := "postgres://gouser:gopassword@postgres:5432/godb?sslmode=disable"
-	
+
 	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
 		return nil, err
@@ -86,6 +97,7 @@ func RegisterRoutes(lc fx.Lifecycle, r *gin.Engine, userCtrl *controller.UserCon
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			log.Printf("🚀 Clean Architecture API starting on :%s (via fx)...", port)
+			log.Println("📦 Architecture: Controller → UseCase → Service → Repository → SQL Functions")
 			go func() {
 				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 					log.Fatalf("Failed to start server: %v", err)
