@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import DashboardPage from './pages/DashboardPage';
+import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ProtectedRoute } from './shared/ProtectedRoute';
+import LoginPage from './pages/auth/LoginPage';
+import SignupPage from './pages/auth/SignupPage';
+import DashboardPage from './pages/dashboard/DashboardPage';
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -16,7 +16,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }

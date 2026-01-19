@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { authApi } from '../api';
-import type { User } from '../api';
+import { authService } from '../api/services';
+import type { User } from '../models';
 
 interface AuthContextType {
   user: User | null;
@@ -17,17 +17,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is logged in on mount
   useEffect(() => {
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
-      const data = await authApi.me();
+      const data = await authService.me();
       if (data) {
-        // We only get user_id and email from /me, create partial user
-        setUser({ id: data.user_id, email: data.email, name: '', created_at: '' });
+        // Construct partial user from me response
+        setUser({ 
+          id: data.user_id, 
+          email: data.email, 
+          name: '', 
+          created_at: '' 
+        });
       }
     } catch {
       setUser(null);
@@ -37,17 +41,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await authApi.login(email, password);
+    const response = await authService.login(email, password);
     setUser(response.user);
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    const response = await authApi.signup(name, email, password);
+    const response = await authService.signup(name, email, password);
     setUser(response.user);
   };
 
   const logout = async () => {
-    await authApi.logout();
+    await authService.logout();
     setUser(null);
   };
 
