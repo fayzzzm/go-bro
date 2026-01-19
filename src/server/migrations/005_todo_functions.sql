@@ -9,15 +9,7 @@ CREATE OR REPLACE FUNCTION fn_create_todo(
     p_title VARCHAR(500),
     p_description TEXT DEFAULT NULL
 )
-RETURNS TABLE (
-    id INTEGER,
-    user_id INTEGER,
-    title VARCHAR(500),
-    description TEXT,
-    completed BOOLEAN,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
-)
+RETURNS SETOF todo_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -57,15 +49,7 @@ CREATE OR REPLACE FUNCTION fn_get_todos_by_user(
     p_limit INTEGER DEFAULT 100,
     p_offset INTEGER DEFAULT 0
 )
-RETURNS TABLE (
-    id INTEGER,
-    user_id INTEGER,
-    title VARCHAR(500),
-    description TEXT,
-    completed BOOLEAN,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
-)
+RETURNS SETOF todo_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
@@ -99,15 +83,7 @@ CREATE OR REPLACE FUNCTION fn_get_todo_by_id(
     p_todo_id INTEGER,
     p_user_id INTEGER
 )
-RETURNS TABLE (
-    id INTEGER,
-    user_id INTEGER,
-    title VARCHAR(500),
-    description TEXT,
-    completed BOOLEAN,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
-)
+RETURNS SETOF todo_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
@@ -135,15 +111,7 @@ CREATE OR REPLACE FUNCTION fn_update_todo(
     p_description TEXT DEFAULT NULL,
     p_completed BOOLEAN DEFAULT NULL
 )
-RETURNS TABLE (
-    id INTEGER,
-    user_id INTEGER,
-    title VARCHAR(500),
-    description TEXT,
-    completed BOOLEAN,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
-)
+RETURNS SETOF todo_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -205,15 +173,7 @@ CREATE OR REPLACE FUNCTION fn_toggle_todo(
     p_todo_id INTEGER,
     p_user_id INTEGER
 )
-RETURNS TABLE (
-    id INTEGER,
-    user_id INTEGER,
-    title VARCHAR(500),
-    description TEXT,
-    completed BOOLEAN,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
-)
+RETURNS SETOF todo_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$

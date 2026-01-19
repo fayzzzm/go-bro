@@ -10,12 +10,7 @@ CREATE OR REPLACE FUNCTION fn_signup_user(
     p_email VARCHAR(255),
     p_password_hash VARCHAR(255)
 )
-RETURNS TABLE (
-    id INTEGER,
-    name VARCHAR(255),
-    email VARCHAR(255),
-    created_at TIMESTAMPTZ
-)
+RETURNS SETOF user_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -66,13 +61,7 @@ $$;
 CREATE OR REPLACE FUNCTION fn_get_user_by_email(
     p_email VARCHAR(255)
 )
-RETURNS TABLE (
-    id INTEGER,
-    name VARCHAR(255),
-    email VARCHAR(255),
-    password_hash VARCHAR(255),
-    created_at TIMESTAMPTZ
-)
+RETURNS SETOF user_auth_row
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
