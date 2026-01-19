@@ -6,9 +6,13 @@ import (
 
 	"github.com/fayzzzm/go-bro/models"
 	"github.com/fayzzzm/go-bro/pkg/auth"
-	"github.com/fayzzzm/go-bro/repository/postgres"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type AuthRepository interface {
+	Signup(ctx context.Context, name, email, hashedPassword string) (*models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*models.UserWithPassword, error)
+}
 
 type AuthServicer interface {
 	Signup(ctx context.Context, name, email, password string) (*models.User, string, error)
@@ -16,10 +20,10 @@ type AuthServicer interface {
 }
 
 type AuthService struct {
-	repo *postgres.AuthRepo
+	repo AuthRepository
 }
 
-func NewAuthService(repo *postgres.AuthRepo) *AuthService {
+func NewAuthService(repo AuthRepository) *AuthService {
 	return &AuthService{repo: repo}
 }
 

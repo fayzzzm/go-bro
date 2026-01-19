@@ -17,12 +17,6 @@ func NewAuthRepo(pool *pgxpool.Pool) *AuthRepo {
 	return &AuthRepo{pool: pool}
 }
 
-// UserWithPassword includes password hash for login verification
-type UserWithPassword struct {
-	models.User
-	PasswordHash string
-}
-
 func (r *AuthRepo) Signup(ctx context.Context, name, email, passwordHash string) (*models.User, error) {
 	var user models.User
 	err := r.pool.QueryRow(ctx,
@@ -36,8 +30,8 @@ func (r *AuthRepo) Signup(ctx context.Context, name, email, passwordHash string)
 	return &user, nil
 }
 
-func (r *AuthRepo) GetUserByEmail(ctx context.Context, email string) (*UserWithPassword, error) {
-	var user UserWithPassword
+func (r *AuthRepo) GetUserByEmail(ctx context.Context, email string) (*models.UserWithPassword, error) {
+	var user models.UserWithPassword
 	err := r.pool.QueryRow(ctx,
 		"SELECT id, name, email, password_hash, created_at FROM fn_get_user_by_email($1)",
 		email,

@@ -4,8 +4,16 @@ import (
 	"context"
 
 	"github.com/fayzzzm/go-bro/models"
-	"github.com/fayzzzm/go-bro/repository/postgres"
 )
+
+type TodoRepository interface {
+	Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
+	GetByUser(ctx context.Context, userID int, limit, offset int) ([]models.Todo, error)
+	GetByID(ctx context.Context, todoID, userID int) (*models.Todo, error)
+	Update(ctx context.Context, todoID, userID int, title *string, description *string, completed *bool) (*models.Todo, error)
+	Delete(ctx context.Context, todoID, userID int) error
+	Toggle(ctx context.Context, todoID, userID int) (*models.Todo, error)
+}
 
 type TodoServicer interface {
 	Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
@@ -17,10 +25,10 @@ type TodoServicer interface {
 }
 
 type TodoService struct {
-	repo *postgres.TodoRepo
+	repo TodoRepository
 }
 
-func NewTodoService(repo *postgres.TodoRepo) *TodoService {
+func NewTodoService(repo TodoRepository) *TodoService {
 	return &TodoService{repo: repo}
 }
 

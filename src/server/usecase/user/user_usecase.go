@@ -2,12 +2,63 @@ package user
 
 import (
 	"context"
+	"time"
 
 	"github.com/fayzzzm/go-bro/service"
 )
 
-// UserUseCaseImpl implements the UserUseCase interface.
-// It orchestrates the flow and transforms between DTOs and domain models.
+// --- Interfaces ---
+
+// UserUseCase defines the contract for user-related use cases.
+type UserUseCase interface {
+	RegisterUser(ctx context.Context, input RegisterUserInput) (*RegisterUserOutput, error)
+	GetUser(ctx context.Context, input GetUserInput) (*GetUserOutput, error)
+	ListUsers(ctx context.Context, input ListUsersInput) (*ListUsersOutput, error)
+}
+
+// --- DTOs ---
+
+// Input DTOs
+type RegisterUserInput struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type GetUserInput struct {
+	ID int `json:"id"`
+}
+
+type ListUsersInput struct {
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+}
+
+// Output DTOs
+type UserOutput struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type RegisterUserOutput struct {
+	User    *UserOutput `json:"user"`
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+}
+
+type GetUserOutput struct {
+	User  *UserOutput `json:"user,omitempty"`
+	Found bool        `json:"found"`
+}
+
+type ListUsersOutput struct {
+	Users []*UserOutput `json:"users"`
+	Total int           `json:"total"`
+}
+
+// --- Implementation ---
+
 type UserUseCaseImpl struct {
 	userService service.UserServicer
 }
@@ -17,7 +68,6 @@ func NewUserUseCase(svc service.UserServicer) *UserUseCaseImpl {
 }
 
 func (uc *UserUseCaseImpl) RegisterUser(ctx context.Context, input RegisterUserInput) (*RegisterUserOutput, error) {
-	// Call the service (which now just delegates to SQL functions)
 	user, err := uc.userService.RegisterUser(ctx, input.Name, input.Email)
 	if err != nil {
 		return &RegisterUserOutput{
@@ -26,7 +76,6 @@ func (uc *UserUseCaseImpl) RegisterUser(ctx context.Context, input RegisterUserI
 		}, err
 	}
 
-	// Transform domain model to output DTO
 	return &RegisterUserOutput{
 		User: &UserOutput{
 			ID:        user.ID,
@@ -59,7 +108,6 @@ func (uc *UserUseCaseImpl) GetUser(ctx context.Context, input GetUserInput) (*Ge
 }
 
 func (uc *UserUseCaseImpl) ListUsers(ctx context.Context, input ListUsersInput) (*ListUsersOutput, error) {
-	// Set defaults
 	limit := input.Limit
 	if limit <= 0 {
 		limit = 100
@@ -74,7 +122,6 @@ func (uc *UserUseCaseImpl) ListUsers(ctx context.Context, input ListUsersInput) 
 		return nil, err
 	}
 
-	// Transform domain models to output DTOs
 	output := &ListUsersOutput{
 		Users: make([]*UserOutput, len(users)),
 		Total: len(users),
