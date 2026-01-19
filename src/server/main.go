@@ -22,19 +22,29 @@ func main() {
 			// 1. Database Pool
 			NewDatabasePool,
 
-			// 2. Repositories (Adapters) - Calls SQL functions
+			// 2. Repositories (Adapters)
 			fx.Annotate(
 				postgres.NewUserRepo,
 				fx.As(new(service.UserRepository)),
 			),
+			postgres.NewAuthRepo,
+			postgres.NewTodoRepo,
 
-			// 3. Services (Core) - Thin wrapper
+			// 3. Services (Core)
 			fx.Annotate(
 				service.NewUserService,
 				fx.As(new(service.UserServicer)),
 			),
+			fx.Annotate(
+				service.NewAuthService,
+				fx.As(new(service.AuthServicer)),
+			),
+			fx.Annotate(
+				service.NewTodoService,
+				fx.As(new(service.TodoServicer)),
+			),
 
-			// 4. Use Cases - Application logic & DTO transformation
+			// 4. Use Cases
 			fx.Annotate(
 				usecase.NewUserUseCase,
 				fx.As(new(usecase.UserUseCase)),
@@ -42,6 +52,8 @@ func main() {
 
 			// 5. Controllers (Adapters)
 			controller.NewUserController,
+			controller.NewAuthController,
+			controller.NewTodoController,
 
 			// 6. Framework (Gin)
 			NewGinEngine,
@@ -56,12 +68,19 @@ func main() {
 // NewDatabasePool creates a connection pool and handles its shutdown via fx.Lifecycle
 func NewDatabasePool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 	ctx := context.Background()
-	connStr := "postgres://gouser:gopassword@postgres:5432/godb?sslmode=disable"
+
+	// Get connection string from environment variable
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		log.Fatal("DATABASE_URL environment variable is required")
+	}
 
 	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("✅ Database connection established")
 
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
@@ -74,15 +93,36 @@ func NewDatabasePool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-// NewGinEngine initializes the Gin framework
+// NewGinEngine initializes the Gin framework with CORS
 func NewGinEngine() *gin.Engine {
 	r := gin.Default()
+
+	// Enable CORS for development
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
 	return r
 }
 
 // RegisterRoutes ties everything together and starts the HTTP server
-func RegisterRoutes(lc fx.Lifecycle, r *gin.Engine, userCtrl *controller.UserController) {
-	routes.SetupRoutes(r, userCtrl)
+func RegisterRoutes(
+	lc fx.Lifecycle,
+	r *gin.Engine,
+	userCtrl *controller.UserController,
+	authCtrl *controller.AuthController,
+	todoCtrl *controller.TodoController,
+) {
+	routes.SetupRoutes(r, userCtrl, authCtrl, todoCtrl)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -96,8 +136,8 @@ func RegisterRoutes(lc fx.Lifecycle, r *gin.Engine, userCtrl *controller.UserCon
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			log.Printf("🚀 Clean Architecture API starting on :%s (via fx)...", port)
-			log.Println("📦 Architecture: Controller → UseCase → Service → Repository → SQL Functions")
+			log.Printf("🚀 Todo API starting on :%s", port)
+			log.Println("📦 Endpoints: /api/v1/auth, /api/v1/todos, /api/v1/users")
 			go func() {
 				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 					log.Fatalf("Failed to start server: %v", err)
