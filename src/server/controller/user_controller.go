@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/fayzzzm/go-bro/middleware"
+	"github.com/fayzzzm/go-bro/pkg/reply"
 	usecase "github.com/fayzzzm/go-bro/usecase/user"
 	"github.com/gin-gonic/gin"
 )
@@ -18,45 +19,33 @@ func NewUserController(uc usecase.UserUseCase) *UserController {
 }
 
 func (ctrl *UserController) GetUser(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+	id, err := strconv.Atoi(c.Param("id"))
+	if reply.Error(c, http.StatusBadRequest, "invalid id format", err) {
 		return
 	}
 
 	input := usecase.GetUserInput{ID: id}
 	output, err := ctrl.uc.GetUser(c.Request.Context(), input)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+
+	if reply.Error(c, http.StatusNotFound, "user not found", err) {
 		return
 	}
 
-	if !output.Found {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, output.User)
+	reply.OK(c, output.User)
 }
 
 func (ctrl *UserController) CreateUser(c *gin.Context) {
 	input := middleware.GetBody[usecase.RegisterUserInput](c)
 
 	output, err := ctrl.uc.RegisterUser(c.Request.Context(), input)
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{
-			"error":   err.Error(),
-			"success": false,
-		})
+	if reply.Error(c, http.StatusUnprocessableEntity, "could not create user", err) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, output)
+	reply.Created(c, output)
 }
 
 func (ctrl *UserController) ListUsers(c *gin.Context) {
-	// Parse optional query parameters
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
@@ -66,10 +55,9 @@ func (ctrl *UserController) ListUsers(c *gin.Context) {
 	}
 
 	output, err := ctrl.uc.ListUsers(c.Request.Context(), input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if reply.InternalError(c, err) {
 		return
 	}
 
-	c.JSON(http.StatusOK, output)
+	reply.OK(c, output)
 }

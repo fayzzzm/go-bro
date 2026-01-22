@@ -1,218 +1,106 @@
--- Todo SQL Functions
+-- Todo SQL API: Standardized Request/Response Pattern
 -- RESTful naming: todos.create, todos.list, todos.get, todos.update, todos.delete, todos.toggle
 
 -- =============================================================================
--- todos.create: Creates a new todo for a user
+-- API CONTRACT TYPES
 -- =============================================================================
-CREATE TYPE todo.list_response AS (
-    id INTEGER,
-    user_id INTEGER,
-    title VARCHAR(500),
+
+-- INPUT: One object to handle all potential todo parameters
+CREATE TYPE todo.todo_request AS (
+    id          INTEGER,
+    user_id     INTEGER,
+    title       TEXT,
     description TEXT,
-    completed BOOLEAN,
-    created_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ
+    completed   BOOLEAN,
+    limit_val   INTEGER,
+    offset_val  INTEGER
 );
 
-CREATE OR REPLACE FUNCTION todos.create(
-    p_user_id INTEGER,
-    p_title VARCHAR(500),
-    p_description TEXT DEFAULT NULL
-)
-RETURNS SETOF todos.list_response
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    v_todo_id INTEGER;
+-- OUTPUT: One object for all todo responses
+CREATE TYPE todo.todo_response AS (
+    id          INTEGER,
+    user_id     INTEGER,
+    title       VARCHAR(500),
+    description TEXT,
+    completed   BOOLEAN,
+    created_at  TIMESTAMPTZ,
+    updated_at  TIMESTAMPTZ
+);
+
+-- =============================================================================
+-- API FUNCTIONS
+-- =============================================================================
+
+-- CREATE
+CREATE OR REPLACE FUNCTION todos.create(r todo.todo_request)
+RETURNS SETOF todo.todo_response AS $$
 BEGIN
-    -- Validate user exists
-    IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = p_user_id) THEN
-        RAISE EXCEPTION 'user not found'
-            USING ERRCODE = 'foreign_key_violation';
-    END IF;
-    
-    -- Validate title
-    IF TRIM(COALESCE(p_title, '')) = '' THEN
-        RAISE EXCEPTION 'title cannot be empty'
-            USING ERRCODE = 'check_violation';
-    END IF;
-    
-    -- Insert todo
+    RETURN QUERY
     INSERT INTO public.todos (user_id, title, description)
-    VALUES (p_user_id, TRIM(p_title), p_description)
-    RETURNING id INTO v_todo_id;
-    
-    -- Return created todo
-    RETURN QUERY
-    SELECT t.id, t.user_id, t.title, t.description, t.completed, t.created_at, t.updated_at
-    FROM public.todos t
-    WHERE t.id = v_todo_id;
+    VALUES (r.user_id, r.title, r.description)
+    RETURNING id, user_id, title, description, completed, created_at, updated_at;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- =============================================================================
--- todos.list: Gets all todos for a user with pagination
--- =============================================================================
-CREATE OR REPLACE FUNCTION todos.list(
-    p_user_id INTEGER,
-    p_limit INTEGER DEFAULT 100,
-    p_offset INTEGER DEFAULT 0
-)
-RETURNS SETOF todos.list_response
-LANGUAGE plpgsql
-SECURITY DEFINER
-STABLE
-AS $$
-BEGIN
-    -- Apply constraints
-    IF p_limit IS NULL OR p_limit <= 0 THEN
-        p_limit := 100;
-    ELSIF p_limit > 1000 THEN
-        p_limit := 1000;
-    END IF;
-    
-    IF p_offset IS NULL OR p_offset < 0 THEN
-        p_offset := 0;
-    END IF;
-    
-    RETURN QUERY
-    SELECT t.id, t.user_id, t.title, t.description, t.completed, t.created_at, t.updated_at
-    FROM public.todos t
-    WHERE t.user_id = p_user_id
-    ORDER BY t.created_at DESC
-    LIMIT p_limit
-    OFFSET p_offset;
-END;
-$$;
-
--- =============================================================================
--- todos.get: Gets a specific todo (with ownership check)
--- =============================================================================
-CREATE OR REPLACE FUNCTION todos.get(
-    p_todo_id INTEGER,
-    p_user_id INTEGER
-)
-RETURNS SETOF todo_row
-LANGUAGE plpgsql
-SECURITY DEFINER
-STABLE
-AS $$
+-- LIST
+CREATE OR REPLACE FUNCTION todos.list(r todo.todo_request)
+RETURNS SETOF todo.todo_response AS $$
 BEGIN
     RETURN QUERY
-    SELECT t.id, t.user_id, t.title, t.description, t.completed, t.created_at, t.updated_at
-    FROM public.todos t
-    WHERE t.id = p_todo_id AND t.user_id = p_user_id;
-    
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'todo not found'
-            USING ERRCODE = 'no_data_found';
-    END IF;
+    SELECT id, user_id, title, description, completed, created_at, updated_at
+    FROM public.todos
+    WHERE user_id = r.user_id
+    ORDER BY created_at DESC
+    LIMIT COALESCE(r.limit_val, 100)
+    OFFSET COALESCE(r.offset_val, 0);
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- =============================================================================
--- todos.update: Updates a todo (with ownership check)
--- =============================================================================
-CREATE OR REPLACE FUNCTION todos.update(
-    p_todo_id INTEGER,
-    p_user_id INTEGER,
-    p_title VARCHAR(500) DEFAULT NULL,
-    p_description TEXT DEFAULT NULL,
-    p_completed BOOLEAN DEFAULT NULL
-)
-RETURNS SETOF todo_row
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
+-- GET
+CREATE OR REPLACE FUNCTION todos.get(r todo.todo_request)
+RETURNS SETOF todo.todo_response AS $$
 BEGIN
-    -- Check ownership
-    IF NOT EXISTS (SELECT 1 FROM public.todos t WHERE t.id = p_todo_id AND t.user_id = p_user_id) THEN
-        RAISE EXCEPTION 'todo not found'
-            USING ERRCODE = 'no_data_found';
-    END IF;
-    
-    -- Update only provided fields
-    UPDATE public.todos t
+    RETURN QUERY
+    SELECT id, user_id, title, description, completed, created_at, updated_at
+    FROM public.todos
+    WHERE id = r.id AND user_id = r.user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- UPDATE
+CREATE OR REPLACE FUNCTION todos.update(r todo.todo_request)
+RETURNS SETOF todo.todo_response AS $$
+BEGIN
+    RETURN QUERY
+    UPDATE public.todos
     SET 
-        title = COALESCE(NULLIF(TRIM(p_title), ''), t.title),
-        description = COALESCE(p_description, t.description),
-        completed = COALESCE(p_completed, t.completed)
-    WHERE t.id = p_todo_id AND t.user_id = p_user_id;
-    
-    -- Return updated todo
-    RETURN QUERY
-    SELECT t.id, t.user_id, t.title, t.description, t.completed, t.created_at, t.updated_at
-    FROM public.todos t
-    WHERE t.id = p_todo_id;
+        title = COALESCE(r.title, title),
+        description = COALESCE(r.description, description),
+        completed = COALESCE(r.completed, completed),
+        updated_at = NOW()
+    WHERE id = r.id AND user_id = r.user_id
+    RETURNING id, user_id, title, description, completed, created_at, updated_at;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- =============================================================================
--- todos.delete: Deletes a todo (with ownership check)
--- =============================================================================
-CREATE OR REPLACE FUNCTION todos.delete(
-    p_todo_id INTEGER,
-    p_user_id INTEGER
-)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    v_deleted BOOLEAN;
+-- DELETE
+CREATE OR REPLACE FUNCTION todos.delete(r todo.todo_request)
+RETURNS BOOLEAN AS $$
 BEGIN
-    DELETE FROM public.todos t
-    WHERE t.id = p_todo_id AND t.user_id = p_user_id;
-    
-    GET DIAGNOSTICS v_deleted = ROW_COUNT;
-    
-    IF NOT v_deleted THEN
-        RAISE EXCEPTION 'todo not found'
-            USING ERRCODE = 'no_data_found';
-    END IF;
-    
-    RETURN TRUE;
+    DELETE FROM public.todos 
+    WHERE id = r.id AND user_id = r.user_id;
+    RETURN FOUND;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
--- =============================================================================
--- todos.toggle: Toggles the completed status of a todo
--- =============================================================================
-CREATE OR REPLACE FUNCTION todos.toggle(
-    p_todo_id INTEGER,
-    p_user_id INTEGER
-)
-RETURNS SETOF todo_row
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
+-- TOGGLE
+CREATE OR REPLACE FUNCTION todos.toggle(r todo.todo_request)
+RETURNS SETOF todo.todo_response AS $$
 BEGIN
-    -- Check ownership
-    IF NOT EXISTS (SELECT 1 FROM public.todos t WHERE t.id = p_todo_id AND t.user_id = p_user_id) THEN
-        RAISE EXCEPTION 'todo not found'
-            USING ERRCODE = 'no_data_found';
-    END IF;
-    
-    -- Toggle completed
-    UPDATE public.todos t
-    SET completed = NOT t.completed
-    WHERE t.id = p_todo_id AND t.user_id = p_user_id;
-    
-    -- Return updated todo
     RETURN QUERY
-    SELECT t.id, t.user_id, t.title, t.description, t.completed, t.created_at, t.updated_at
-    FROM public.todos t
-    WHERE t.id = p_todo_id;
+    UPDATE public.todos
+    SET completed = NOT completed, updated_at = NOW()
+    WHERE id = r.id AND user_id = r.user_id
+    RETURNING id, user_id, title, description, completed, created_at, updated_at;
 END;
-$$;
-
--- =============================================================================
--- COMMENTS
--- =============================================================================
-COMMENT ON FUNCTION todos.create IS 'Creates a new todo for a user';
-COMMENT ON FUNCTION todos.list IS 'Gets all todos for a user with pagination';
-COMMENT ON FUNCTION todos.get IS 'Gets a specific todo with ownership check';
-COMMENT ON FUNCTION todos.update IS 'Updates a todo with ownership check';
-COMMENT ON FUNCTION todos.delete IS 'Deletes a todo with ownership check';
-COMMENT ON FUNCTION todos.toggle IS 'Toggles the completed status of a todo';
+$$ LANGUAGE plpgsql;

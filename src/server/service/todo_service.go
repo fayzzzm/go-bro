@@ -10,7 +10,7 @@ type TodoRepository interface {
 	Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
 	GetByUser(ctx context.Context, userID int, limit, offset int) ([]models.Todo, error)
 	GetByID(ctx context.Context, todoID, userID int) (*models.Todo, error)
-	Update(ctx context.Context, todoID, userID int, title *string, description *string, completed *bool) (*models.Todo, error)
+	Update(ctx context.Context, userID int, todo *models.Todo) (*models.Todo, error)
 	Delete(ctx context.Context, todoID, userID int) error
 	Toggle(ctx context.Context, todoID, userID int) (*models.Todo, error)
 }
@@ -19,7 +19,7 @@ type TodoServicer interface {
 	Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
 	GetByUser(ctx context.Context, userID int, limit, offset int) ([]models.Todo, error)
 	GetByID(ctx context.Context, todoID, userID int) (*models.Todo, error)
-	Update(ctx context.Context, todoID, userID int, title *string, description *string, completed *bool) (*models.Todo, error)
+	Update(ctx context.Context, userID int, todo *models.Todo) (*models.Todo, error)
 	Delete(ctx context.Context, todoID, userID int) error
 	Toggle(ctx context.Context, todoID, userID int) (*models.Todo, error)
 }
@@ -50,8 +50,8 @@ func (s *TodoService) GetByID(ctx context.Context, todoID, userID int) (*models.
 	return s.repo.GetByID(ctx, todoID, userID)
 }
 
-func (s *TodoService) Update(ctx context.Context, todoID, userID int, title *string, description *string, completed *bool) (*models.Todo, error) {
-	return s.repo.Update(ctx, todoID, userID, title, description, completed)
+func (s *TodoService) Update(ctx context.Context, userID int, todo *models.Todo) (*models.Todo, error) {
+	return s.repo.Update(ctx, userID, todo)
 }
 
 func (s *TodoService) Delete(ctx context.Context, todoID, userID int) error {

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/fayzzzm/go-bro/middleware"
+	"github.com/fayzzzm/go-bro/pkg/reply"
 	"github.com/fayzzzm/go-bro/service"
 	"github.com/gin-gonic/gin"
 )
@@ -39,81 +40,66 @@ type AuthResponse struct {
 	Message string      `json:"message,omitempty"`
 }
 
-// isProduction checks if we're running in production
 func isProduction() bool {
 	return os.Getenv("GIN_MODE") == "release"
 }
 
-// setAuthCookie sets the JWT token as an HTTP-only cookie
-func setAuthCookie(ctx *gin.Context, token string) {
-	secure := isProduction() // Only secure in production (requires HTTPS)
-
-	ctx.SetSameSite(http.SameSiteLaxMode)
-	ctx.SetCookie(
-		AuthCookieName, // name
-		token,          // value
-		CookieMaxAge,   // maxAge (24 hours)
-		"/",            // path
-		"",             // domain (empty = current domain)
-		secure,         // secure (HTTPS only in production)
-		true,           // httpOnly (not accessible via JavaScript)
-	)
+func setAuthCookie(c *gin.Context, token string) {
+	secure := isProduction()
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(AuthCookieName, token, CookieMaxAge, "/", "", secure, true)
 }
 
-// clearAuthCookie removes the auth cookie
-func clearAuthCookie(ctx *gin.Context) {
-	ctx.SetCookie(AuthCookieName, "", -1, "/", "", false, true)
+func clearAuthCookie(c *gin.Context) {
+	c.SetCookie(AuthCookieName, "", -1, "/", "", false, true)
 }
 
-func (c *AuthController) Signup(ctx *gin.Context) {
-	req := middleware.GetBody[SignupRequest](ctx)
+func (ctrl *AuthController) Signup(c *gin.Context) {
+	req := middleware.GetBody[SignupRequest](c)
 
-	user, err := c.authService.Signup(ctx.Request.Context(), req.Name, req.Email, req.Password)
+	user, err := ctrl.authService.Signup(c.Request.Context(), req.Name, req.Email, req.Password)
 	if err != nil {
-		errMsg := err.Error()
-		if errMsg == "email already exists" {
-			ctx.JSON(http.StatusConflict, gin.H{"error": errMsg})
-			return
+		code := http.StatusBadRequest
+		if err.Error() == "email already exists" {
+			code = http.StatusConflict
 		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+		reply.Error(c, code, err.Error(), err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, AuthResponse{
+	reply.Created(c, AuthResponse{
 		User:    user,
 		Message: "Account created successfully",
 	})
 }
 
-func (c *AuthController) Login(ctx *gin.Context) {
-	req := middleware.GetBody[LoginRequest](ctx)
+func (ctrl *AuthController) Login(c *gin.Context) {
+	req := middleware.GetBody[LoginRequest](c)
 
-	user, token, err := c.authService.Login(ctx.Request.Context(), req.Email, req.Password)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+	user, token, err := ctrl.authService.Login(c.Request.Context(), req.Email, req.Password)
+	if reply.Error(c, http.StatusUnauthorized, "invalid credentials", err) {
 		return
 	}
 
-	// Set token as HTTP-only cookie
-	setAuthCookie(ctx, token)
+	setAuthCookie(c, token)
 
-	ctx.JSON(http.StatusOK, AuthResponse{
+	reply.OK(c, AuthResponse{
 		User:    user,
 		Token:   token,
 		Message: "Login successful",
 	})
 }
 
-func (c *AuthController) Logout(ctx *gin.Context) {
-	clearAuthCookie(ctx)
-	ctx.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+func (ctrl *AuthController) Logout(c *gin.Context) {
+	clearAuthCookie(c)
+	reply.OK(c, gin.H{"message": "Logged out successfully"})
 }
 
-func (c *AuthController) Me(ctx *gin.Context) {
-	userID, _ := middleware.GetUserID(ctx)
-	email, _ := middleware.GetUserEmail(ctx)
+func (ctrl *AuthController) Me(c *gin.Context) {
+	userID, _ := middleware.GetUserID(c)
+	email, _ := middleware.GetUserEmail(c)
 
-	ctx.JSON(http.StatusOK, gin.H{
+	reply.OK(c, gin.H{
 		"user_id": userID,
 		"email":   email,
 	})

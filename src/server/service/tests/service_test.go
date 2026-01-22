@@ -95,6 +95,7 @@ func TestAuthService_Login(t *testing.T) {
 type MockTodoRepository struct {
 	CreateFunc    func(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
 	GetByUserFunc func(ctx context.Context, userID int, limit, offset int) ([]models.Todo, error)
+	UpdateFunc    func(ctx context.Context, userID int, todo *models.Todo) (*models.Todo, error)
 }
 
 func (m *MockTodoRepository) Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error) {
@@ -106,8 +107,8 @@ func (m *MockTodoRepository) GetByUser(ctx context.Context, userID int, limit, o
 func (m *MockTodoRepository) GetByID(ctx context.Context, todoID, userID int) (*models.Todo, error) {
 	return nil, nil
 }
-func (m *MockTodoRepository) Update(ctx context.Context, todoID, userID int, title, desc *string, comp *bool) (*models.Todo, error) {
-	return nil, nil
+func (m *MockTodoRepository) Update(ctx context.Context, userID int, todo *models.Todo) (*models.Todo, error) {
+	return m.UpdateFunc(ctx, userID, todo)
 }
 func (m *MockTodoRepository) Delete(ctx context.Context, todoID, userID int) error { return nil }
 func (m *MockTodoRepository) Toggle(ctx context.Context, todoID, userID int) (*models.Todo, error) {
@@ -117,7 +118,7 @@ func (m *MockTodoRepository) Toggle(ctx context.Context, todoID, userID int) (*m
 func TestTodoService_Create(t *testing.T) {
 	mockRepo := &MockTodoRepository{
 		CreateFunc: func(ctx context.Context, userID int, title string, description *string) (*models.Todo, error) {
-			return &models.Todo{ID: 1, UserID: userID, Title: title}, nil
+			return &models.Todo{ID: 1, UserID: userID, Title: &title}, nil
 		},
 	}
 	todoService := service.NewTodoService(mockRepo)
@@ -127,8 +128,8 @@ func TestTodoService_Create(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if todo.Title != "Buy Milk" {
-		t.Errorf("Expected title Buy Milk, got %s", todo.Title)
+	if *todo.Title != "Buy Milk" {
+		t.Errorf("Expected title Buy Milk, got %s", *todo.Title)
 	}
 }
 

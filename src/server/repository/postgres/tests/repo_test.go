@@ -81,8 +81,8 @@ func TestPostgresRepositories(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create todo: %v", err)
 		}
-		if todo.Title != title {
-			t.Errorf("Expected title %s, got %s", title, todo.Title)
+		if *todo.Title != title {
+			t.Errorf("Expected title %s, got %s", title, *todo.Title)
 		}
 
 		// List Todos
@@ -99,7 +99,7 @@ func TestPostgresRepositories(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to toggle todo: %v", err)
 		}
-		if updated.Completed != !todo.Completed {
+		if *updated.Completed != !*todo.Completed {
 			t.Error("Toggle did not change completed status")
 		}
 

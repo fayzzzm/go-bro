@@ -2,10 +2,8 @@ package postgres
 
 import (
 	"context"
-	"errors"
 
 	"github.com/fayzzzm/go-bro/models"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,22 +16,17 @@ func NewAuthRepo(pool *pgxpool.Pool) *AuthRepo {
 }
 
 func (r *AuthRepo) Signup(ctx context.Context, name, email, passwordHash string) (*models.User, error) {
-	return queryOne[models.User](ctx, r.pool,
-		"SELECT * FROM users.create($1, $2, $3)",
-		name, email, passwordHash,
-	)
+	payload := map[string]any{
+		"name":          name,
+		"email":         email,
+		"password_hash": passwordHash,
+	}
+	return queryOne[models.User](ctx, r.pool, "SELECT * FROM users.create($1)", payload)
 }
 
 func (r *AuthRepo) GetUserByEmail(ctx context.Context, email string) (*models.UserWithPassword, error) {
-	user, err := queryOne[models.UserWithPassword](ctx, r.pool,
-		"SELECT * FROM users.get_by_email($1)",
-		email,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.New("user not found")
-		}
-		return nil, err
+	payload := map[string]any{
+		"email": email,
 	}
-	return user, nil
+	return queryOne[models.UserWithPassword](ctx, r.pool, "SELECT * FROM users.get_by_email($1)", payload)
 }
