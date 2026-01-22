@@ -15,7 +15,7 @@ type UserRepository interface {
 	// GetByID calls the SQL function fn_get_user_by_id
 	GetByID(ctx context.Context, id int) (*models.User, error)
 	// GetAll calls the SQL function fn_list_users
-	GetAll(ctx context.Context, limit, offset int) ([]*models.User, error)
+	GetAll(ctx context.Context, limit, offset int) ([]models.User, error)
 }
 
 // UserServicer is the interface that use cases depend on.
@@ -23,7 +23,7 @@ type UserRepository interface {
 type UserServicer interface {
 	RegisterUser(ctx context.Context, name, email string) (*models.User, error)
 	GetUser(ctx context.Context, id int) (*models.User, error)
-	ListUsers(ctx context.Context, limit, offset int) ([]*models.User, error)
+	ListUsers(ctx context.Context, limit, offset int) ([]models.User, error)
 }
 
 // UserService is a thin wrapper that delegates to the repository.
@@ -45,6 +45,6 @@ func (s *UserService) GetUser(ctx context.Context, id int) (*models.User, error)
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *UserService) ListUsers(ctx context.Context, limit, offset int) ([]*models.User, error) {
+func (s *UserService) ListUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
 	return s.repo.GetAll(ctx, limit, offset)
 }

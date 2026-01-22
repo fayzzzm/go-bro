@@ -25,3 +25,7 @@ CREATE TYPE todo_row AS (
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ
 );
+
+-- Create schemas for namespacing our SQL API
+CREATE SCHEMA IF NOT EXISTS users;
+CREATE SCHEMA IF NOT EXISTS todos;

@@ -2,9 +2,12 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/fayzzzm/go-bro/models"
 	"github.com/fayzzzm/go-bro/repository/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -26,7 +29,7 @@ func TestPostgresRepositories(t *testing.T) {
 	t.Run("AuthRepo", func(t *testing.T) {
 		repo := postgres.NewAuthRepo(pool)
 
-		email := "test-repo@example.com"
+		email := fmt.Sprintf("test-repo-%d@example.com", time.Now().UnixNano())
 		name := "Repo Tester"
 		pwd := "hashed-pwd"
 
@@ -55,7 +58,7 @@ func TestPostgresRepositories(t *testing.T) {
 		todoRepo := postgres.NewTodoRepo(pool)
 
 		// Create a user first
-		email := "todo-repo@example.com"
+		email := fmt.Sprintf("todo-repo-%d@example.com", time.Now().UnixNano())
 		user, err := authRepo.Signup(ctx, "Todo User", email, "pwd")
 		if err != nil {
 			// user might already exist from previous run, let's try to get it
@@ -63,7 +66,12 @@ func TestPostgresRepositories(t *testing.T) {
 			if err2 != nil {
 				t.Fatalf("Failed to create/get user for todo test: %v", err2)
 			}
-			user = &userWithPwd.User
+			user = &models.User{
+				ID:        userWithPwd.ID,
+				Name:      userWithPwd.Name,
+				Email:     userWithPwd.Email,
+				CreatedAt: userWithPwd.CreatedAt,
+			}
 		}
 
 		// Create Todo

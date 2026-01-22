@@ -47,13 +47,13 @@ func (m *MockUserService) GetUser(ctx context.Context, id int) (*models.User, er
 	return user, nil
 }
 
-func (m *MockUserService) ListUsers(ctx context.Context, limit, offset int) ([]*models.User, error) {
+func (m *MockUserService) ListUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	var res []*models.User
+	var res []models.User
 	for _, u := range m.users {
-		res = append(res, u)
+		res = append(res, *u)
 	}
 	return res, nil
 }

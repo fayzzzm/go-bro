@@ -18,30 +18,22 @@ func NewAuthRepo(pool *pgxpool.Pool) *AuthRepo {
 }
 
 func (r *AuthRepo) Signup(ctx context.Context, name, email, passwordHash string) (*models.User, error) {
-	var user models.User
-	err := r.pool.QueryRow(ctx,
-		"SELECT id, name, email, created_at FROM fn_signup_user($1, $2, $3)",
+	return queryOne[models.User](ctx, r.pool,
+		"SELECT * FROM users.create($1, $2, $3)",
 		name, email, passwordHash,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt)
-
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
+	)
 }
 
 func (r *AuthRepo) GetUserByEmail(ctx context.Context, email string) (*models.UserWithPassword, error) {
-	var user models.UserWithPassword
-	err := r.pool.QueryRow(ctx,
-		"SELECT id, name, email, password_hash, created_at FROM fn_get_user_by_email($1)",
+	user, err := queryOne[models.UserWithPassword](ctx, r.pool,
+		"SELECT * FROM users.get_by_email($1)",
 		email,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CreatedAt)
-
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
-	return &user, nil
+	return user, nil
 }

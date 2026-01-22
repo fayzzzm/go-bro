@@ -31,16 +31,13 @@ func TestAuthService_Signup(t *testing.T) {
 	}
 	authService := service.NewAuthService(mockRepo)
 
-	user, token, err := authService.Signup(context.Background(), "Test User", "test@example.com", "password123")
+	user, err := authService.Signup(context.Background(), "Test User", "test@example.com", "password123")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if user.Name != "Test User" {
 		t.Errorf("Expected name Test User, got %s", user.Name)
-	}
-	if token == "" {
-		t.Error("Expected token, got empty string")
 	}
 }
 
@@ -52,7 +49,8 @@ func TestAuthService_Login(t *testing.T) {
 				// Re-generating hash here to ensure it's valid
 				h, _ := bcrypt.GenerateFromPassword([]byte("password123"), 10)
 				return &models.UserWithPassword{
-					User:         models.User{ID: 1, Email: email},
+					ID:           1,
+					Email:        email,
 					PasswordHash: string(h),
 				}, nil
 			},
@@ -77,7 +75,8 @@ func TestAuthService_Login(t *testing.T) {
 			GetUserByEmailFunc: func(ctx context.Context, email string) (*models.UserWithPassword, error) {
 				h, _ := bcrypt.GenerateFromPassword([]byte("correct-password"), 10)
 				return &models.UserWithPassword{
-					User:         models.User{ID: 1, Email: email},
+					ID:           1,
+					Email:        email,
 					PasswordHash: string(h),
 				}, nil
 			},

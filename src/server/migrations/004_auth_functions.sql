@@ -1,11 +1,10 @@
 -- Authentication SQL Functions
--- These functions handle user authentication
+-- RESTful naming: users.create, users.get_by_email
 
 -- =============================================================================
--- fn_signup_user: Creates a new user with hashed password
--- Returns: The created user (without password_hash for security)
+-- users.create: Creates a new user with hashed password
 -- =============================================================================
-CREATE OR REPLACE FUNCTION fn_signup_user(
+CREATE OR REPLACE FUNCTION users.create(
     p_name VARCHAR(255),
     p_email VARCHAR(255),
     p_password_hash VARCHAR(255)
@@ -30,7 +29,7 @@ BEGIN
     END IF;
     
     -- Check email uniqueness
-    IF EXISTS (SELECT 1 FROM users u WHERE u.email = LOWER(TRIM(p_email))) THEN
+    IF EXISTS (SELECT 1 FROM public.users u WHERE u.email = LOWER(TRIM(p_email))) THEN
         RAISE EXCEPTION 'email already exists'
             USING ERRCODE = 'unique_violation';
     END IF;
@@ -42,23 +41,22 @@ BEGIN
     END IF;
     
     -- Insert user
-    INSERT INTO users (name, email, password_hash)
+    INSERT INTO public.users (name, email, password_hash)
     VALUES (TRIM(p_name), LOWER(TRIM(p_email)), p_password_hash)
-    RETURNING users.id INTO v_user_id;
+    RETURNING id INTO v_user_id;
     
     -- Return user data (without password_hash)
     RETURN QUERY
     SELECT u.id, u.name, u.email, u.created_at
-    FROM users u
+    FROM public.users u
     WHERE u.id = v_user_id;
 END;
 $$;
 
 -- =============================================================================
--- fn_login_user: Verifies user credentials and returns user data
--- Returns: User data with password_hash for verification in app layer
+-- users.get_by_email: Gets user by email for login verification
 -- =============================================================================
-CREATE OR REPLACE FUNCTION fn_get_user_by_email(
+CREATE OR REPLACE FUNCTION users.get_by_email(
     p_email VARCHAR(255)
 )
 RETURNS SETOF user_auth_row
@@ -74,7 +72,7 @@ BEGIN
     
     RETURN QUERY
     SELECT u.id, u.name, u.email, u.password_hash, u.created_at
-    FROM users u
+    FROM public.users u
     WHERE u.email = LOWER(TRIM(p_email));
     
     IF NOT FOUND THEN
@@ -87,5 +85,5 @@ $$;
 -- =============================================================================
 -- COMMENTS
 -- =============================================================================
-COMMENT ON FUNCTION fn_signup_user IS 'Creates a new user with password hash, validates inputs';
-COMMENT ON FUNCTION fn_get_user_by_email IS 'Gets user by email including password_hash for login verification';
+COMMENT ON FUNCTION users.create IS 'Creates a new user with password hash, validates inputs';
+COMMENT ON FUNCTION users.get_by_email IS 'Gets user by email including password_hash for login verification';

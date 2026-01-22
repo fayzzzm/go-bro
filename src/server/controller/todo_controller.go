@@ -30,17 +30,8 @@ type UpdateTodoRequest struct {
 }
 
 func (c *TodoController) Create(ctx *gin.Context) {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
-
-	var req CreateTodoRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx) // Auth middleware already verified this
+	req := middleware.GetBody[CreateTodoRequest](ctx)
 
 	todo, err := c.todoService.Create(ctx.Request.Context(), userID, req.Title, req.Description)
 	if err != nil {
@@ -52,11 +43,7 @@ func (c *TodoController) Create(ctx *gin.Context) {
 }
 
 func (c *TodoController) List(ctx *gin.Context) {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx)
 
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "100"))
 	offset, _ := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
@@ -75,11 +62,7 @@ func (c *TodoController) List(ctx *gin.Context) {
 }
 
 func (c *TodoController) GetByID(ctx *gin.Context) {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx)
 
 	todoID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -97,23 +80,9 @@ func (c *TodoController) GetByID(ctx *gin.Context) {
 }
 
 func (c *TodoController) Update(ctx *gin.Context) {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
-
-	todoID, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
-		return
-	}
-
-	var req UpdateTodoRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx)
+	todoID, _ := strconv.Atoi(ctx.Param("id")) // Param check could be a middleware too, but keeping it simple
+	req := middleware.GetBody[UpdateTodoRequest](ctx)
 
 	todo, err := c.todoService.Update(ctx.Request.Context(), todoID, userID, req.Title, req.Description, req.Completed)
 	if err != nil {
@@ -125,11 +94,7 @@ func (c *TodoController) Update(ctx *gin.Context) {
 }
 
 func (c *TodoController) Delete(ctx *gin.Context) {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx)
 
 	todoID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -146,11 +111,7 @@ func (c *TodoController) Delete(ctx *gin.Context) {
 }
 
 func (c *TodoController) Toggle(ctx *gin.Context) {
-	userID, ok := middleware.GetUserID(ctx)
-	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx)
 
 	todoID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

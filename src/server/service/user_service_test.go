@@ -51,13 +51,13 @@ func (m *MockUserRepo) GetByID(ctx context.Context, id int) (*models.User, error
 	return user, nil
 }
 
-func (m *MockUserRepo) GetAll(ctx context.Context, limit, offset int) ([]*models.User, error) {
+func (m *MockUserRepo) GetAll(ctx context.Context, limit, offset int) ([]models.User, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	var res []*models.User
+	var res []models.User
 	for _, u := range m.users {
-		res = append(res, u)
+		res = append(res, *u)
 	}
 	return res, nil
 }

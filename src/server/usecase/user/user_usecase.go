@@ -53,8 +53,8 @@ type GetUserOutput struct {
 }
 
 type ListUsersOutput struct {
-	Users []*UserOutput `json:"users"`
-	Total int           `json:"total"`
+	Users []UserOutput `json:"users"`
+	Total int          `json:"total"`
 }
 
 // --- Implementation ---
@@ -123,12 +123,12 @@ func (uc *UserUseCaseImpl) ListUsers(ctx context.Context, input ListUsersInput) 
 	}
 
 	output := &ListUsersOutput{
-		Users: make([]*UserOutput, len(users)),
+		Users: make([]UserOutput, len(users)),
 		Total: len(users),
 	}
 
 	for i, u := range users {
-		output.Users[i] = &UserOutput{
+		output.Users[i] = UserOutput{
 			ID:        u.ID,
 			Name:      u.Name,
 			Email:     u.Email,

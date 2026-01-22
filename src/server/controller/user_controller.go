@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fayzzzm/go-bro/middleware"
 	usecase "github.com/fayzzzm/go-bro/usecase/user"
 	"github.com/gin-gonic/gin"
 )
@@ -40,12 +41,7 @@ func (ctrl *UserController) GetUser(c *gin.Context) {
 }
 
 func (ctrl *UserController) CreateUser(c *gin.Context) {
-	var input usecase.RegisterUserInput
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	input := middleware.GetBody[usecase.RegisterUserInput](c)
 
 	output, err := ctrl.uc.RegisterUser(c.Request.Context(), input)
 	if err != nil {

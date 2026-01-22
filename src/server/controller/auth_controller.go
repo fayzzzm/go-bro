@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/fayzzzm/go-bro/middleware"
 	"github.com/fayzzzm/go-bro/service"
 	"github.com/gin-gonic/gin"
 )
@@ -34,6 +35,7 @@ type LoginRequest struct {
 
 type AuthResponse struct {
 	User    interface{} `json:"user"`
+	Token   string      `json:"token,omitempty"`
 	Message string      `json:"message,omitempty"`
 }
 
@@ -64,13 +66,9 @@ func clearAuthCookie(ctx *gin.Context) {
 }
 
 func (c *AuthController) Signup(ctx *gin.Context) {
-	var req SignupRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	req := middleware.GetBody[SignupRequest](ctx)
 
-	user, token, err := c.authService.Signup(ctx.Request.Context(), req.Name, req.Email, req.Password)
+	user, err := c.authService.Signup(ctx.Request.Context(), req.Name, req.Email, req.Password)
 	if err != nil {
 		errMsg := err.Error()
 		if errMsg == "email already exists" {
@@ -81,9 +79,6 @@ func (c *AuthController) Signup(ctx *gin.Context) {
 		return
 	}
 
-	// Set token as HTTP-only cookie
-	setAuthCookie(ctx, token)
-
 	ctx.JSON(http.StatusCreated, AuthResponse{
 		User:    user,
 		Message: "Account created successfully",
@@ -91,11 +86,7 @@ func (c *AuthController) Signup(ctx *gin.Context) {
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
-	var req LoginRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	req := middleware.GetBody[LoginRequest](ctx)
 
 	user, token, err := c.authService.Login(ctx.Request.Context(), req.Email, req.Password)
 	if err != nil {
@@ -108,6 +99,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, AuthResponse{
 		User:    user,
+		Token:   token,
 		Message: "Login successful",
 	})
 }
@@ -118,13 +110,9 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 }
 
 func (c *AuthController) Me(ctx *gin.Context) {
-	userID, exists := ctx.Get("auth_user_id")
-	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
-		return
-	}
+	userID, _ := middleware.GetUserID(ctx)
+	email, _ := middleware.GetUserEmail(ctx)
 
-	email, _ := ctx.Get("auth_user_email")
 	ctx.JSON(http.StatusOK, gin.H{
 		"user_id": userID,
 		"email":   email,

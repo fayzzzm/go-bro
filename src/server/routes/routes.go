@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/fayzzzm/go-bro/controller"
 	"github.com/fayzzzm/go-bro/middleware"
+	usecase "github.com/fayzzzm/go-bro/usecase/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,8 +19,8 @@ func SetupRoutes(
 	// Public routes (no auth required)
 	auth := api.Group("/auth")
 	{
-		auth.POST("/signup", authCtrl.Signup)
-		auth.POST("/login", authCtrl.Login)
+		auth.POST("/signup", middleware.BindJSON[controller.SignupRequest](), authCtrl.Signup)
+		auth.POST("/login", middleware.BindJSON[controller.LoginRequest](), authCtrl.Login)
 		auth.POST("/logout", authCtrl.Logout)
 	}
 
@@ -28,7 +29,7 @@ func SetupRoutes(
 	{
 		users.GET("", userCtrl.ListUsers)
 		users.GET("/:id", userCtrl.GetUser)
-		users.POST("", userCtrl.CreateUser)
+		users.POST("", middleware.BindJSON[usecase.RegisterUserInput](), userCtrl.CreateUser)
 	}
 
 	// Protected routes (require auth)
@@ -42,9 +43,9 @@ func SetupRoutes(
 		todos := protected.Group("/todos")
 		{
 			todos.GET("", todoCtrl.List)
-			todos.POST("", todoCtrl.Create)
+			todos.POST("", middleware.BindJSON[controller.CreateTodoRequest](), todoCtrl.Create)
 			todos.GET("/:id", todoCtrl.GetByID)
-			todos.PUT("/:id", todoCtrl.Update)
+			todos.PUT("/:id", middleware.BindJSON[controller.UpdateTodoRequest](), todoCtrl.Update)
 			todos.DELETE("/:id", todoCtrl.Delete)
 			todos.PATCH("/:id/toggle", todoCtrl.Toggle)
 		}
