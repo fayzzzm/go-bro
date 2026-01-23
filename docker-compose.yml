@@ -20,6 +20,7 @@ services:
       - .:/app
       - go-modules:/go/pkg/mod
     working_dir: /app/src/server
+    command: go run main.go
     environment:
       - DATABASE_URL=postgres://gouser:gopassword@postgres:5432/godb?sslmode=disable
       - JWT_SECRET=super-secret-jwt-key-change-in-production

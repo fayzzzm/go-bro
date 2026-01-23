@@ -1,4 +1,4 @@
-package service
+package tests
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fayzzzm/go-bro/models"
+	"github.com/fayzzzm/go-bro/service"
 )
 
 // MockUserRepo is a manual mock implementation of UserRepository.
@@ -77,7 +78,7 @@ func TestUserService_RegisterUser(t *testing.T) {
 
 	t.Run("successful registration", func(t *testing.T) {
 		mockRepo := &MockUserRepo{users: make(map[int]*models.User)}
-		svc := NewUserService(mockRepo)
+		svc := service.NewUserService(mockRepo)
 
 		user, err := svc.RegisterUser(ctx, "John Doe", "john@example.com")
 
@@ -94,7 +95,7 @@ func TestUserService_RegisterUser(t *testing.T) {
 
 	t.Run("invalid email - validation by SQL function", func(t *testing.T) {
 		mockRepo := &MockUserRepo{users: make(map[int]*models.User)}
-		svc := NewUserService(mockRepo)
+		svc := service.NewUserService(mockRepo)
 
 		_, err := svc.RegisterUser(ctx, "John Doe", "invalid-email")
 
@@ -108,7 +109,7 @@ func TestUserService_RegisterUser(t *testing.T) {
 
 	t.Run("empty name - validation by SQL function", func(t *testing.T) {
 		mockRepo := &MockUserRepo{users: make(map[int]*models.User)}
-		svc := NewUserService(mockRepo)
+		svc := service.NewUserService(mockRepo)
 
 		_, err := svc.RegisterUser(ctx, "", "john@example.com")
 
@@ -128,7 +129,7 @@ func TestUserService_GetUser(t *testing.T) {
 		mockRepo := &MockUserRepo{users: map[int]*models.User{
 			1: {ID: 1, Name: "Test", Email: "test@test.com"},
 		}}
-		svc := NewUserService(mockRepo)
+		svc := service.NewUserService(mockRepo)
 
 		user, err := svc.GetUser(ctx, 1)
 
@@ -142,7 +143,7 @@ func TestUserService_GetUser(t *testing.T) {
 
 	t.Run("user not found", func(t *testing.T) {
 		mockRepo := &MockUserRepo{users: make(map[int]*models.User)}
-		svc := NewUserService(mockRepo)
+		svc := service.NewUserService(mockRepo)
 
 		_, err := svc.GetUser(ctx, 999)
 
@@ -160,7 +161,7 @@ func TestUserService_ListUsers(t *testing.T) {
 			1: {ID: 1, Name: "User1", Email: "user1@test.com"},
 			2: {ID: 2, Name: "User2", Email: "user2@test.com"},
 		}}
-		svc := NewUserService(mockRepo)
+		svc := service.NewUserService(mockRepo)
 
 		users, err := svc.ListUsers(ctx, 100, 0)
 
