@@ -16,25 +16,24 @@ func NewUserRepo(pool *pgxpool.Pool) *UserRepo {
 }
 
 func (r *UserRepo) RegisterUser(ctx context.Context, name, email string) (*models.User, error) {
-	payload := map[string]any{
-		"name":  name,
-		"email": email,
+	payload := UserRequest{
+		Name:  &name,
+		Email: &email,
 	}
-	// We use the same 'create' function as Signup but without password hash
 	return queryOne[models.User](ctx, r.pool, "SELECT * FROM users.create($1)", payload)
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id int) (*models.User, error) {
-	payload := map[string]any{
-		"id": id,
+	payload := UserRequest{
+		ID: &id,
 	}
 	return queryOne[models.User](ctx, r.pool, "SELECT * FROM users.get($1)", payload)
 }
 
 func (r *UserRepo) GetAll(ctx context.Context, limit, offset int) ([]models.User, error) {
-	payload := map[string]any{
-		"limit_val":  limit,
-		"offset_val": offset,
+	payload := UserRequest{
+		LimitVal:  &limit,
+		OffsetVal: &offset,
 	}
 	return queryRows[models.User](ctx, r.pool, "SELECT * FROM users.list($1)", payload)
 }

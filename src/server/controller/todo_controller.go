@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type todoUseCase interface {
+type TodoUseCase interface {
 	Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
 	GetByUser(ctx context.Context, userID, limit, offset int) ([]models.Todo, error)
 	GetByID(ctx context.Context, id, userID int) (*models.Todo, error)
@@ -20,10 +20,10 @@ type todoUseCase interface {
 }
 
 type TodoController struct {
-	usecase todoUseCase
+	usecase TodoUseCase
 }
 
-func NewTodoController(usecase todoUseCase) *TodoController {
+func NewTodoController(usecase TodoUseCase) *TodoController {
 	return &TodoController{usecase: usecase}
 }
 

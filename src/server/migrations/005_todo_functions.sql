@@ -6,7 +6,7 @@
 -- =============================================================================
 
 -- INPUT: One object to handle all potential todo parameters
-CREATE TYPE todo.todo_request AS (
+CREATE TYPE todos.todo_request AS (
     id          INTEGER,
     user_id     INTEGER,
     title       TEXT,
@@ -17,7 +17,7 @@ CREATE TYPE todo.todo_request AS (
 );
 
 -- OUTPUT: One object for all todo responses
-CREATE TYPE todo.todo_response AS (
+CREATE TYPE todos.todo_response AS (
     id          INTEGER,
     user_id     INTEGER,
     title       VARCHAR(500),
@@ -32,8 +32,8 @@ CREATE TYPE todo.todo_response AS (
 -- =============================================================================
 
 -- CREATE
-CREATE OR REPLACE FUNCTION todos.create(r todo.todo_request)
-RETURNS SETOF todo.todo_response AS $$
+CREATE OR REPLACE FUNCTION todos.create(r todos.todo_request)
+RETURNS SETOF todos.todo_response AS $$
 BEGIN
     RETURN QUERY
     INSERT INTO public.todos (user_id, title, description)
@@ -43,8 +43,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- LIST
-CREATE OR REPLACE FUNCTION todos.list(r todo.todo_request)
-RETURNS SETOF todo.todo_response AS $$
+CREATE OR REPLACE FUNCTION todos.list(r todos.todo_request)
+RETURNS SETOF todos.todo_response AS $$
 BEGIN
     RETURN QUERY
     SELECT id, user_id, title, description, completed, created_at, updated_at
@@ -57,8 +57,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- GET
-CREATE OR REPLACE FUNCTION todos.get(r todo.todo_request)
-RETURNS SETOF todo.todo_response AS $$
+CREATE OR REPLACE FUNCTION todos.get(r todos.todo_request)
+RETURNS SETOF todos.todo_response AS $$
 BEGIN
     RETURN QUERY
     SELECT id, user_id, title, description, completed, created_at, updated_at
@@ -68,8 +68,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- UPDATE
-CREATE OR REPLACE FUNCTION todos.update(r todo.todo_request)
-RETURNS SETOF todo.todo_response AS $$
+CREATE OR REPLACE FUNCTION todos.update(r todos.todo_request)
+RETURNS SETOF todos.todo_response AS $$
 BEGIN
     RETURN QUERY
     UPDATE public.todos
@@ -84,7 +84,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- DELETE
-CREATE OR REPLACE FUNCTION todos.delete(r todo.todo_request)
+CREATE OR REPLACE FUNCTION todos.delete(r todos.todo_request)
 RETURNS BOOLEAN AS $$
 BEGIN
     DELETE FROM public.todos 
@@ -94,8 +94,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- TOGGLE
-CREATE OR REPLACE FUNCTION todos.toggle(r todo.todo_request)
-RETURNS SETOF todo.todo_response AS $$
+CREATE OR REPLACE FUNCTION todos.toggle(r todos.todo_request)
+RETURNS SETOF todos.todo_response AS $$
 BEGIN
     RETURN QUERY
     UPDATE public.todos

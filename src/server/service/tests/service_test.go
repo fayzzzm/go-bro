@@ -31,13 +31,16 @@ func TestAuthService_Signup(t *testing.T) {
 	}
 	authService := service.NewAuthService(mockRepo)
 
-	user, err := authService.Signup(context.Background(), "Test User", "test@example.com", "password123")
+	user, token, err := authService.Signup(context.Background(), "Test User", "test@example.com", "password123")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if user.Name != "Test User" {
 		t.Errorf("Expected name Test User, got %s", user.Name)
+	}
+	if token == "" {
+		t.Error("Expected token, got empty string")
 	}
 }
 

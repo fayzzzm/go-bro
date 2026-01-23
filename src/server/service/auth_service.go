@@ -15,7 +15,7 @@ type AuthRepository interface {
 }
 
 type AuthServicer interface {
-	Signup(ctx context.Context, name, email, password string) (*models.User, error)
+	Signup(ctx context.Context, name, email, password string) (*models.User, string, error)
 	Login(ctx context.Context, email, password string) (*models.User, string, error)
 }
 
@@ -27,20 +27,26 @@ func NewAuthService(repo AuthRepository) *AuthService {
 	return &AuthService{repo: repo}
 }
 
-func (s *AuthService) Signup(ctx context.Context, name, email, password string) (*models.User, error) {
+func (s *AuthService) Signup(ctx context.Context, name, email, password string) (*models.User, string, error) {
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// Create user
 	user, err := s.repo.Signup(ctx, name, email, string(hashedPassword))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return user, nil
+	// Generate token
+	token, err := auth.GenerateToken(user.ID, user.Email)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return user, token, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password string) (*models.User, string, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/fayzzzm/go-bro/service"
 	"github.com/fayzzzm/go-bro/usecase/users"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
 )
@@ -27,8 +28,14 @@ func main() {
 				postgres.NewUserRepo,
 				fx.As(new(service.UserRepository)),
 			),
-			postgres.NewAuthRepo,
-			postgres.NewTodoRepo,
+			fx.Annotate(
+				postgres.NewAuthRepo,
+				fx.As(new(service.AuthRepository)),
+			),
+			fx.Annotate(
+				postgres.NewTodoRepo,
+				fx.As(new(service.TodoRepository)),
+			),
 
 			// 3. Services (Core)
 			fx.Annotate(
@@ -37,17 +44,17 @@ func main() {
 			),
 			fx.Annotate(
 				service.NewAuthService,
-				fx.As(new(service.AuthServicer)),
+				fx.As(new(controller.AuthUseCase)),
 			),
 			fx.Annotate(
 				service.NewTodoService,
-				fx.As(new(service.TodoServicer)),
+				fx.As(new(controller.TodoUseCase)),
 			),
 
 			// 4. Use Cases
 			fx.Annotate(
 				users.NewUseCase,
-				fx.As(new(users.UseCase)),
+				fx.As(new(controller.UserUseCase)),
 			),
 
 			// 5. Controllers (Adapters)
@@ -75,8 +82,31 @@ func NewDatabasePool(lc fx.Lifecycle) (*pgxpool.Pool, error) {
 		log.Fatal("DATABASE_URL environment variable is required")
 	}
 
-	pool, err := pgxpool.New(ctx, connStr)
+	config, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
+		return nil, err
+	}
+
+	// Register custom composite types
+	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		types := []string{"users.user_request", "todos.todo_request"}
+		for _, t := range types {
+			dt, err := conn.LoadType(ctx, t)
+			if err != nil {
+				log.Printf("⚠️ Warning: Failed to load type %s: %v", t, err)
+				continue
+			}
+			conn.TypeMap().RegisterType(dt)
+		}
+		return nil
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pool.Ping(ctx); err != nil {
 		return nil, err
 	}
 

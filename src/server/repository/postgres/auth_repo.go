@@ -16,17 +16,17 @@ func NewAuthRepo(pool *pgxpool.Pool) *AuthRepo {
 }
 
 func (r *AuthRepo) Signup(ctx context.Context, name, email, passwordHash string) (*models.User, error) {
-	payload := map[string]any{
-		"name":          name,
-		"email":         email,
-		"password_hash": passwordHash,
+	payload := UserRequest{
+		Name:         &name,
+		Email:        &email,
+		PasswordHash: &passwordHash,
 	}
 	return queryOne[models.User](ctx, r.pool, "SELECT * FROM users.create($1)", payload)
 }
 
 func (r *AuthRepo) GetUserByEmail(ctx context.Context, email string) (*models.UserWithPassword, error) {
-	payload := map[string]any{
-		"email": email,
+	payload := UserRequest{
+		Email: &email,
 	}
 	return queryOne[models.UserWithPassword](ctx, r.pool, "SELECT * FROM users.get_by_email($1)", payload)
 }

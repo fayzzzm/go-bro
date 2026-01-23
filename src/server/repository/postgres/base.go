@@ -15,9 +15,11 @@ func queryOne[T any](ctx context.Context, pool *pgxpool.Pool, query string, args
 	}
 	// CollectOneRow handles closing the rows
 	val, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
+
 	if err != nil {
 		return nil, err
 	}
+
 	return &val, nil
 }
 
@@ -27,6 +29,7 @@ func queryRows[T any](ctx context.Context, pool *pgxpool.Pool, query string, arg
 	if err != nil {
 		return nil, err
 	}
+
 	// CollectRows handles closing the rows
 	return pgx.CollectRows(rows, pgx.RowToStructByName[T])
 }

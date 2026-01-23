@@ -11,17 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type userUseCase interface {
+type UserUseCase interface {
 	RegisterUser(ctx context.Context, input users.RegisterUserInput) (*users.RegisterUserOutput, error)
 	GetUser(ctx context.Context, input users.GetUserInput) (*users.GetUserOutput, error)
 	ListUsers(ctx context.Context, input users.ListUsersInput) (*users.ListUsersOutput, error)
 }
 
 type UserController struct {
-	usecase userUseCase
+	usecase UserUseCase
 }
 
-func NewUserController(usecase userUseCase) *UserController {
+func NewUserController(usecase UserUseCase) *UserController {
 	return &UserController{usecase: usecase}
 }
 

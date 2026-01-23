@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/fayzzzm/go-bro/middleware"
+	"github.com/fayzzzm/go-bro/models"
 	"github.com/fayzzzm/go-bro/pkg/reply"
 	"github.com/gin-gonic/gin"
 )
@@ -15,16 +16,16 @@ const (
 	CookieMaxAge   = 24 * 60 * 60 // 24 hours in seconds
 )
 
-type authUseCase interface {
-	Signup(ctx context.Context, name, email, password string) (interface{}, error)
-	Login(ctx context.Context, email, password string) (interface{}, string, error)
+type AuthUseCase interface {
+	Signup(ctx context.Context, name, email, password string) (*models.User, string, error)
+	Login(ctx context.Context, email, password string) (*models.User, string, error)
 }
 
 type AuthController struct {
-	usecase authUseCase
+	usecase AuthUseCase
 }
 
-func NewAuthController(usecase authUseCase) *AuthController {
+func NewAuthController(usecase AuthUseCase) *AuthController {
 	return &AuthController{usecase: usecase}
 }
 
@@ -62,7 +63,7 @@ func clearAuthCookie(ctx *gin.Context) {
 func (c *AuthController) Signup(ctx *gin.Context) {
 	req := middleware.GetBody[SignupRequest](ctx)
 
-	user, err := c.usecase.Signup(ctx.Request.Context(), req.Name, req.Email, req.Password)
+	user, token, err := c.usecase.Signup(ctx.Request.Context(), req.Name, req.Email, req.Password)
 	if err != nil {
 		code := http.StatusBadRequest
 		if err.Error() == "email already exists" {
@@ -72,8 +73,11 @@ func (c *AuthController) Signup(ctx *gin.Context) {
 		return
 	}
 
+	setAuthCookie(ctx, token)
+
 	reply.Created(ctx, AuthResponse{
 		User:    user,
+		Token:   token,
 		Message: "Account created successfully",
 	})
 }
