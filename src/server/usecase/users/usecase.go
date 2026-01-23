@@ -1,4 +1,4 @@
-package user
+package users
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 // --- Interfaces ---
 
-// UserUseCase defines the contract for user-related use cases.
-type UserUseCase interface {
+// UseCase defines the contract for user-related use cases.
+type UseCase interface {
 	RegisterUser(ctx context.Context, input RegisterUserInput) (*RegisterUserOutput, error)
 	GetUser(ctx context.Context, input GetUserInput) (*GetUserOutput, error)
 	ListUsers(ctx context.Context, input ListUsersInput) (*ListUsersOutput, error)
@@ -59,15 +59,15 @@ type ListUsersOutput struct {
 
 // --- Implementation ---
 
-type UserUseCaseImpl struct {
+type UseCaseImpl struct {
 	userService service.UserServicer
 }
 
-func NewUserUseCase(svc service.UserServicer) *UserUseCaseImpl {
-	return &UserUseCaseImpl{userService: svc}
+func NewUseCase(svc service.UserServicer) *UseCaseImpl {
+	return &UseCaseImpl{userService: svc}
 }
 
-func (uc *UserUseCaseImpl) RegisterUser(ctx context.Context, input RegisterUserInput) (*RegisterUserOutput, error) {
+func (uc *UseCaseImpl) RegisterUser(ctx context.Context, input RegisterUserInput) (*RegisterUserOutput, error) {
 	user, err := uc.userService.RegisterUser(ctx, input.Name, input.Email)
 	if err != nil {
 		return &RegisterUserOutput{
@@ -88,7 +88,7 @@ func (uc *UserUseCaseImpl) RegisterUser(ctx context.Context, input RegisterUserI
 	}, nil
 }
 
-func (uc *UserUseCaseImpl) GetUser(ctx context.Context, input GetUserInput) (*GetUserOutput, error) {
+func (uc *UseCaseImpl) GetUser(ctx context.Context, input GetUserInput) (*GetUserOutput, error) {
 	user, err := uc.userService.GetUser(ctx, input.ID)
 	if err != nil {
 		return &GetUserOutput{
@@ -107,7 +107,7 @@ func (uc *UserUseCaseImpl) GetUser(ctx context.Context, input GetUserInput) (*Ge
 	}, nil
 }
 
-func (uc *UserUseCaseImpl) ListUsers(ctx context.Context, input ListUsersInput) (*ListUsersOutput, error) {
+func (uc *UseCaseImpl) ListUsers(ctx context.Context, input ListUsersInput) (*ListUsersOutput, error) {
 	limit := input.Limit
 	if limit <= 0 {
 		limit = 100

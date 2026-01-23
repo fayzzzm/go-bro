@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/fayzzzm/go-bro/models"
-	"github.com/fayzzzm/go-bro/usecase/user"
+	"github.com/fayzzzm/go-bro/usecase/users"
 )
 
 // MockUserService implements service.UserServicer for testing use cases
@@ -63,9 +63,9 @@ func TestUserUseCase_RegisterUser(t *testing.T) {
 
 	t.Run("successful registration returns proper output DTO", func(t *testing.T) {
 		mockSvc := &MockUserService{users: make(map[int]*models.User)}
-		uc := user.NewUserUseCase(mockSvc)
+		uc := users.NewUseCase(mockSvc)
 
-		input := user.RegisterUserInput{Name: "John Doe", Email: "john@example.com"}
+		input := users.RegisterUserInput{Name: "John Doe", Email: "john@example.com"}
 		output, err := uc.RegisterUser(ctx, input)
 
 		if err != nil {
@@ -87,9 +87,9 @@ func TestUserUseCase_RegisterUser(t *testing.T) {
 
 	t.Run("failed registration returns error in output", func(t *testing.T) {
 		mockSvc := &MockUserService{users: make(map[int]*models.User)}
-		uc := user.NewUserUseCase(mockSvc)
+		uc := users.NewUseCase(mockSvc)
 
-		input := user.RegisterUserInput{Name: "", Email: "john@example.com"}
+		input := users.RegisterUserInput{Name: "", Email: "john@example.com"}
 		output, err := uc.RegisterUser(ctx, input)
 
 		if err == nil {
@@ -111,9 +111,9 @@ func TestUserUseCase_GetUser(t *testing.T) {
 		mockSvc := &MockUserService{users: map[int]*models.User{
 			1: {ID: 1, Name: "Test User", Email: "test@test.com", CreatedAt: time.Now()},
 		}}
-		uc := user.NewUserUseCase(mockSvc)
+		uc := users.NewUseCase(mockSvc)
 
-		input := user.GetUserInput{ID: 1}
+		input := users.GetUserInput{ID: 1}
 		output, err := uc.GetUser(ctx, input)
 
 		if err != nil {
@@ -129,9 +129,9 @@ func TestUserUseCase_GetUser(t *testing.T) {
 
 	t.Run("user not found returns output with Found=false", func(t *testing.T) {
 		mockSvc := &MockUserService{users: make(map[int]*models.User)}
-		uc := user.NewUserUseCase(mockSvc)
+		uc := users.NewUseCase(mockSvc)
 
-		input := user.GetUserInput{ID: 999}
+		input := users.GetUserInput{ID: 999}
 		output, err := uc.GetUser(ctx, input)
 
 		if err == nil {
@@ -151,9 +151,9 @@ func TestUserUseCase_ListUsers(t *testing.T) {
 			1: {ID: 1, Name: "User 1", Email: "user1@test.com", CreatedAt: time.Now()},
 			2: {ID: 2, Name: "User 2", Email: "user2@test.com", CreatedAt: time.Now()},
 		}}
-		uc := user.NewUserUseCase(mockSvc)
+		uc := users.NewUseCase(mockSvc)
 
-		input := user.ListUsersInput{} // Empty uses defaults
+		input := users.ListUsersInput{} // Empty uses defaults
 		output, err := uc.ListUsers(ctx, input)
 
 		if err != nil {
@@ -169,9 +169,9 @@ func TestUserUseCase_ListUsers(t *testing.T) {
 
 	t.Run("applies default limit when zero", func(t *testing.T) {
 		mockSvc := &MockUserService{users: make(map[int]*models.User)}
-		uc := user.NewUserUseCase(mockSvc)
+		uc := users.NewUseCase(mockSvc)
 
-		input := user.ListUsersInput{Limit: 0, Offset: -5}
+		input := users.ListUsersInput{Limit: 0, Offset: -5}
 		_, err := uc.ListUsers(ctx, input)
 
 		// Should not error - defaults applied

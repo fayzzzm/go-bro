@@ -1,21 +1,30 @@
 package controller
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/fayzzzm/go-bro/middleware"
 	"github.com/fayzzzm/go-bro/models"
 	"github.com/fayzzzm/go-bro/pkg/reply"
-	"github.com/fayzzzm/go-bro/service"
 	"github.com/gin-gonic/gin"
 )
 
-type TodoController struct {
-	todoService service.TodoServicer
+type todoUseCase interface {
+	Create(ctx context.Context, userID int, title string, description *string) (*models.Todo, error)
+	GetByUser(ctx context.Context, userID, limit, offset int) ([]models.Todo, error)
+	GetByID(ctx context.Context, id, userID int) (*models.Todo, error)
+	Update(ctx context.Context, userID int, todo *models.Todo) (*models.Todo, error)
+	Delete(ctx context.Context, id, userID int) error
+	Toggle(ctx context.Context, id, userID int) (*models.Todo, error)
 }
 
-func NewTodoController(todoService service.TodoServicer) *TodoController {
-	return &TodoController{todoService: todoService}
+type TodoController struct {
+	usecase todoUseCase
+}
+
+func NewTodoController(usecase todoUseCase) *TodoController {
+	return &TodoController{usecase: usecase}
 }
 
 type CreateTodoRequest struct {
@@ -29,26 +38,26 @@ type UpdateTodoRequest struct {
 	Completed   *bool   `json:"completed"`
 }
 
-func (ctrl *TodoController) Create(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
-	req := middleware.GetBody[CreateTodoRequest](c)
+func (c *TodoController) Create(ctx *gin.Context) {
+	userID, _ := middleware.GetUserID(ctx)
+	req := middleware.GetBody[CreateTodoRequest](ctx)
 
-	todo, err := ctrl.todoService.Create(c.Request.Context(), userID, req.Title, req.Description)
-	if reply.InternalError(c, err) {
+	todo, err := c.usecase.Create(ctx.Request.Context(), userID, req.Title, req.Description)
+	if reply.InternalError(ctx, err) {
 		return
 	}
 
-	reply.Created(c, gin.H{"todo": todo})
+	reply.Created(ctx, gin.H{"todo": todo})
 }
 
-func (ctrl *TodoController) List(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
+func (c *TodoController) List(ctx *gin.Context) {
+	userID, _ := middleware.GetUserID(ctx)
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "100"))
+	offset, _ := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
 
-	todos, err := ctrl.todoService.GetByUser(c.Request.Context(), userID, limit, offset)
-	if reply.InternalError(c, err) {
+	todos, err := c.usecase.GetByUser(ctx.Request.Context(), userID, limit, offset)
+	if reply.InternalError(ctx, err) {
 		return
 	}
 
@@ -56,25 +65,25 @@ func (ctrl *TodoController) List(c *gin.Context) {
 		todos = []models.Todo{}
 	}
 
-	reply.OK(c, gin.H{"todos": todos, "count": len(todos)})
+	reply.OK(ctx, gin.H{"todos": todos, "count": len(todos)})
 }
 
-func (ctrl *TodoController) GetByID(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
-	todoID, _ := strconv.Atoi(c.Param("id"))
+func (c *TodoController) GetByID(ctx *gin.Context) {
+	userID, _ := middleware.GetUserID(ctx)
+	todoID, _ := strconv.Atoi(ctx.Param("id"))
 
-	todo, err := ctrl.todoService.GetByID(c.Request.Context(), todoID, userID)
-	if reply.NotFound(c, err) {
+	todo, err := c.usecase.GetByID(ctx.Request.Context(), todoID, userID)
+	if reply.NotFound(ctx, err) {
 		return
 	}
 
-	reply.OK(c, gin.H{"todo": todo})
+	reply.OK(ctx, gin.H{"todo": todo})
 }
 
-func (ctrl *TodoController) Update(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
-	todoID, _ := strconv.Atoi(c.Param("id"))
-	req := middleware.GetBody[UpdateTodoRequest](c)
+func (c *TodoController) Update(ctx *gin.Context) {
+	userID, _ := middleware.GetUserID(ctx)
+	todoID, _ := strconv.Atoi(ctx.Param("id"))
+	req := middleware.GetBody[UpdateTodoRequest](ctx)
 
 	todo := &models.Todo{
 		ID:          todoID,
@@ -83,34 +92,34 @@ func (ctrl *TodoController) Update(c *gin.Context) {
 		Completed:   req.Completed,
 	}
 
-	updatedTodo, err := ctrl.todoService.Update(c.Request.Context(), userID, todo)
-	if reply.NotFound(c, err) {
+	updatedTodo, err := c.usecase.Update(ctx.Request.Context(), userID, todo)
+	if reply.NotFound(ctx, err) {
 		return
 	}
 
-	reply.OK(c, gin.H{"todo": updatedTodo})
+	reply.OK(ctx, gin.H{"todo": updatedTodo})
 }
 
-func (ctrl *TodoController) Delete(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
-	todoID, _ := strconv.Atoi(c.Param("id"))
+func (c *TodoController) Delete(ctx *gin.Context) {
+	userID, _ := middleware.GetUserID(ctx)
+	todoID, _ := strconv.Atoi(ctx.Param("id"))
 
-	if err := ctrl.todoService.Delete(c.Request.Context(), todoID, userID); err != nil {
-		reply.NotFound(c, err)
+	if err := c.usecase.Delete(ctx.Request.Context(), todoID, userID); err != nil {
+		reply.NotFound(ctx, err)
 		return
 	}
 
-	reply.OK(c, gin.H{"message": "todo deleted"})
+	reply.OK(ctx, gin.H{"message": "todo deleted"})
 }
 
-func (ctrl *TodoController) Toggle(c *gin.Context) {
-	userID, _ := middleware.GetUserID(c)
-	todoID, _ := strconv.Atoi(c.Param("id"))
+func (c *TodoController) Toggle(ctx *gin.Context) {
+	userID, _ := middleware.GetUserID(ctx)
+	todoID, _ := strconv.Atoi(ctx.Param("id"))
 
-	todo, err := ctrl.todoService.Toggle(c.Request.Context(), todoID, userID)
-	if reply.NotFound(c, err) {
+	todo, err := c.usecase.Toggle(ctx.Request.Context(), todoID, userID)
+	if reply.NotFound(ctx, err) {
 		return
 	}
 
-	reply.OK(c, gin.H{"todo": todo})
+	reply.OK(ctx, gin.H{"todo": todo})
 }

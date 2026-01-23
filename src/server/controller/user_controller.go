@@ -1,63 +1,70 @@
 package controller
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/fayzzzm/go-bro/middleware"
 	"github.com/fayzzzm/go-bro/pkg/reply"
-	usecase "github.com/fayzzzm/go-bro/usecase/user"
+	"github.com/fayzzzm/go-bro/usecase/users"
 	"github.com/gin-gonic/gin"
 )
 
+type userUseCase interface {
+	RegisterUser(ctx context.Context, input users.RegisterUserInput) (*users.RegisterUserOutput, error)
+	GetUser(ctx context.Context, input users.GetUserInput) (*users.GetUserOutput, error)
+	ListUsers(ctx context.Context, input users.ListUsersInput) (*users.ListUsersOutput, error)
+}
+
 type UserController struct {
-	uc usecase.UserUseCase
+	usecase userUseCase
 }
 
-func NewUserController(uc usecase.UserUseCase) *UserController {
-	return &UserController{uc: uc}
+func NewUserController(usecase userUseCase) *UserController {
+	return &UserController{usecase: usecase}
 }
 
-func (ctrl *UserController) GetUser(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if reply.Error(c, http.StatusBadRequest, "invalid id format", err) {
+func (c *UserController) GetUser(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if reply.Error(ctx, http.StatusBadRequest, "invalid id format", err) {
 		return
 	}
 
-	input := usecase.GetUserInput{ID: id}
-	output, err := ctrl.uc.GetUser(c.Request.Context(), input)
+	input := users.GetUserInput{ID: id}
+	output, err := c.usecase.GetUser(ctx.Request.Context(), input)
 
-	if reply.Error(c, http.StatusNotFound, "user not found", err) {
+	if reply.Error(ctx, http.StatusNotFound, "user not found", err) {
 		return
 	}
 
-	reply.OK(c, output.User)
+	reply.OK(ctx, output.User)
 }
 
-func (ctrl *UserController) CreateUser(c *gin.Context) {
-	input := middleware.GetBody[usecase.RegisterUserInput](c)
+func (c *UserController) CreateUser(ctx *gin.Context) {
+	input := middleware.GetBody[users.RegisterUserInput](ctx)
 
-	output, err := ctrl.uc.RegisterUser(c.Request.Context(), input)
-	if reply.Error(c, http.StatusUnprocessableEntity, "could not create user", err) {
+	output, err := c.usecase.RegisterUser(ctx.Request.Context(), input)
+	if reply.Error(ctx, http.StatusUnprocessableEntity, "could not create user", err) {
 		return
 	}
 
-	reply.Created(c, output)
+	reply.Created(ctx, output)
 }
 
-func (ctrl *UserController) ListUsers(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+func (c *UserController) ListUsers(ctx *gin.Context) {
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "100"))
+	offset, _ := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
 
-	input := usecase.ListUsersInput{
+	input := users.ListUsersInput{
 		Limit:  limit,
 		Offset: offset,
 	}
 
-	output, err := ctrl.uc.ListUsers(c.Request.Context(), input)
-	if reply.InternalError(c, err) {
+	output, err := c.usecase.ListUsers(ctx.Request.Context(), input)
+	if reply.InternalError(ctx, err) {
 		return
 	}
 
-	reply.OK(c, output)
+	reply.OK(ctx, output)
 }

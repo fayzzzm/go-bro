@@ -10,7 +10,7 @@ import (
 	"github.com/fayzzzm/go-bro/repository/postgres"
 	"github.com/fayzzzm/go-bro/routes"
 	"github.com/fayzzzm/go-bro/service"
-	usecase "github.com/fayzzzm/go-bro/usecase/user"
+	"github.com/fayzzzm/go-bro/usecase/users"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
@@ -46,8 +46,8 @@ func main() {
 
 			// 4. Use Cases
 			fx.Annotate(
-				usecase.NewUserUseCase,
-				fx.As(new(usecase.UserUseCase)),
+				users.NewUseCase,
+				fx.As(new(users.UseCase)),
 			),
 
 			// 5. Controllers (Adapters)

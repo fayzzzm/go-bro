@@ -7,9 +7,12 @@ description: Standards for writing Go Gin Controllers (Standardized Reply Patter
 Follow these rules to ensure all controllers are lean, consistent, and boilerplate-free.
 
 ## 1. Naming Conventions
-- **Receiver**: Always use `ctrl` for the controller struct receiver.
-- **Context**: Always use `c` for the `*gin.Context` variable.
-- **Example**: `func (ctrl *TodoController) Create(c *gin.Context)`
+- **Receiver**: Always use `c` for the controller struct receiver (idiomatic Go).
+- **Context**: Always use `ctx` for the `*gin.Context` variable to avoid collision with the receiver.
+- **Example**: `func (c *UserController) Create(ctx *gin.Context)`
+
+## 2. Interface Definition
+Always define the interface the controller needs locally (consumer-side interface). This ensures the controller describes its own dependencies and facilitates easier mocking/decoupling.
 
 ## 2. Shared Reply Package
 Never use `c.JSON()` or `c.AbortWithStatus()` directly. Always use the `pkg/reply` package for symmetry and centralization.

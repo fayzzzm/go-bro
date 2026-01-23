@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/fayzzzm/go-bro/controller"
 	"github.com/fayzzzm/go-bro/middleware"
-	usecase "github.com/fayzzzm/go-bro/usecase/user"
+	"github.com/fayzzzm/go-bro/usecase/users"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,11 +25,11 @@ func SetupRoutes(
 	}
 
 	// User routes (public for now, can be protected later)
-	users := api.Group("/users")
+	usersGroup := api.Group("/users")
 	{
-		users.GET("", userCtrl.ListUsers)
-		users.GET("/:id", userCtrl.GetUser)
-		users.POST("", middleware.BindJSON[usecase.RegisterUserInput](), userCtrl.CreateUser)
+		usersGroup.GET("", userCtrl.ListUsers)
+		usersGroup.GET("/:id", userCtrl.GetUser)
+		usersGroup.POST("", middleware.BindJSON[users.RegisterUserInput](), userCtrl.CreateUser)
 	}
 
 	// Protected routes (require auth)
